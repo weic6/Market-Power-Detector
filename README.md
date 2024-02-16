@@ -1,2 +1,2 @@
 # Capstone_Project
-Repository for the project: strategic bidding identification
+Repository for the project: strategic bidding identification using pattern recognition techniques
