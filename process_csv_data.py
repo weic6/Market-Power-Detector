@@ -27,22 +27,26 @@ def combine_dataset(data_folder, all_csv_files, out_csv_name):
     sorted_df = combined_df.sort_values(by=['STARTTIME', 'STOPTIME'], ascending=True)
     sorted_df.to_csv(f'{out_csv_name}.csv', index=False)
 
-# load configuration
-with open('config.json', 'r') as config_file:
-    config = json.load(config_file)
-train_percentage = config['train_percentage']
+def main():
+    # load configuration
+    with open('config.json', 'r') as config_file:
+        config = json.load(config_file)
+    train_percentage = config['train_percentage']
 
-# load the csv files
-data_folder = '/Users/wei/Library/CloudStorage/OneDrive-UniversityofIllinois-Urbana/24Sp/ENG573-SIEMENS/Data/DAM'
-all_files = os.listdir(data_folder)
-csv_files = sorted([file for file in all_files if file.endswith('.csv')])
+    # load the csv files
+    data_folder = '/Users/wei/Library/CloudStorage/OneDrive-UniversityofIllinois-Urbana/24Sp/ENG573-SIEMENS/Data/DAM'
+    all_files = os.listdir(data_folder)
+    csv_files = sorted([file for file in all_files if file.endswith('.csv')])
 
-# split dataset
-split_index = int(len(csv_files) * (train_percentage / 100))
-train_files = csv_files[:split_index]
-valid_files = csv_files[split_index:]
-print(train_files[0], train_files[-1])
-print(valid_files[0], valid_files[-1])
+    # split dataset
+    split_index = int(len(csv_files) * (train_percentage / 100))
+    train_files = csv_files[:split_index]
+    valid_files = csv_files[split_index:]
+    print(train_files[0], train_files[-1])
+    print(valid_files[0], valid_files[-1])
 
-combine_dataset(data_folder, train_files, out_csv_name="train_combined")
-combine_dataset(data_folder, valid_files, out_csv_name="valid_combined")
+    combine_dataset(data_folder, train_files, out_csv_name="train_combined")
+    combine_dataset(data_folder, valid_files, out_csv_name="valid_combined")
+    
+if __name__ == '__main__':
+    main()
