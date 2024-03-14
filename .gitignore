@@ -5,3 +5,4 @@ train_combined*
 valid_combined*
 .DS_Store
 wei_*
+test*

@@ -126,9 +126,9 @@ def download_LMP_within_date_range(market, start_date, end_date, save_to_path):
             
 
 def main():
-    start_date = "20230802" # "YYYYMMDD"
-    end_date = "20231123" # "YYYYMMDD"
-    save_to_path = "./Data/DAM"
+    start_date = "20230723" # "YYYYMMDD"
+    end_date = "20230801" # "YYYYMMDD"
+    save_to_path = "../../Data/DAM/LMP"
     market = "DAM" # or "RUC"
     download_LMP_within_date_range(market, start_date, end_date, save_to_path)
 
