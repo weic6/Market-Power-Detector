@@ -177,7 +177,8 @@ def draw_bid_curves_for_multiple_days(data_multiple_days):
     
 def main():
     # reading csv file 
-    df = pd.read_csv("train_combined.csv", low_memory=False)
+    combined_csv_file = "train_combined.csv" # "valid_combined.csv"
+    df = pd.read_csv(combined_csv_file, low_memory=False)
 
     #config
     with open('config_draw.json', 'r') as config_file:
