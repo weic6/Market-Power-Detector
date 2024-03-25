@@ -1,10 +1,10 @@
-crawler_practice.py
-Data
-dtype_info*
-train_combined*
-valid_combined*
+*.csv
+*.xlsx
+data
 .DS_Store
-wei_*
-test*
 .ipynb_checkpoints
 __pycache__
+wei_*
+test*
+crawler_practice.py
+dtype_info*
