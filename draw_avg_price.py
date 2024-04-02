@@ -40,7 +40,7 @@ def draw_avg_price_for_multiple_days(data_dir):
         df_filtered = df_combined[df_combined["LMP_TYPE"] == lmp_type]
 
         for day in df_filtered["OPR_DT"].unique():
-            df_day = df_filtered[df_filtered["OPR_DT"] == day]
+            df_day = df_filtered[df_filtered["OPR_DT"] == day].copy()
             df_day.sort_values(by=["INTERVALSTARTTIME_GMT"], inplace=True)
             df_day["hour_idx"] = df_day.groupby("OPR_DT").cumcount()
             # print(df_day.head(30))
@@ -164,6 +164,10 @@ def find_hourly_avg_price(
             for file in files:  # each file is for one day only
                 p_bar.set_description(f"Processing file: {os.path.basename(file)}")
                 df = pd.read_csv(file, low_memory=False)
+
+                # exclude row with GRP_TYPE = 'ALL_APNODES'
+                df = df[df["GRP_TYPE"] != "ALL_APNODES"]
+
                 OPR_DT = df["OPR_DT"].loc[0]
                 LMP_TYPE = df["LMP_TYPE"].loc[0]
                 #         print(f"type: {type}, OPR_DT: {OPR_DT}")
@@ -187,8 +191,8 @@ def find_hourly_avg_price(
 
 def main():
     # data_folder = "data/LMP_one_day"
-    # data_folder = "data/LMP"
-    data_folder = "data/LMP_one_month"
+    data_folder = "data/LMP"
+    # data_folder = "data/LMP_one_month"
     # Unzip the files
     zip_data_folder = os.path.join(data_folder, "raw")
     unzip_data_folder = os.path.join(data_folder, "unzip")
