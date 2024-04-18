@@ -19,6 +19,39 @@ def draw_bid_curves_for_multiple_days_2d(
     Draw 2D bidding curves for multiple days.
     If hr_specified is not None, then draw the curve for the specified hour only.
     """
+    result_dict = find_trace_bid_curves_for_multiple_days_2d(
+        data_multiple_days, hr_specified, cluster_labels
+    )
+    RESOURCEBID_SEQ = result_dict["RESOURCEBID_SEQ"]
+    START_DAY = result_dict["START_DAY"]
+    END_DAY = result_dict["END_DAY"]
+    traces = result_dict["traces"]
+
+    fig = go.Figure()
+    for trace in traces:
+        fig.add_trace(trace)
+
+    # update the layout once for the entire figure
+    fig_title = f"bidding curve for resource id = {RESOURCEBID_SEQ} from {START_DAY} to {END_DAY}"
+    if hr_specified is not None:
+        fig_title += f", at hour {hr_specified}"
+    fig.update_layout(
+        title=fig_title,
+        xaxis_title="Amount (MW)",
+        yaxis_title="Price ($)",
+        hovermode="x unified",
+    )
+
+    fig.show()
+
+
+def find_trace_bid_curves_for_multiple_days_2d(
+    data_multiple_days, hr_specified=None, cluster_labels=None
+):
+    """
+    Return traces of 2D bidding curves for multiple days.
+    If hr_specified is not None, then return traces of 2D bidding curves for the specified hour only.
+    """
     df = pd.DataFrame(data_multiple_days)
     RESOURCEBID_SEQ = df["RESOURCEBID_SEQ"].iloc[0]
 
@@ -33,7 +66,6 @@ def draw_bid_curves_for_multiple_days_2d(
         ],
         inplace=True,
     )
-    fig = go.Figure()
     unique_days = sorted(
         df["SCH_BID_TIMEINTERVALSTART"].dt.date.unique()
     )  # eg unique_days = [datetime.date(2023, 7, 23), ....,datetime.date(2023, 9, 24)]
@@ -55,6 +87,7 @@ def draw_bid_curves_for_multiple_days_2d(
     END_DAY = unique_days[-1]
 
     day_hour_start = 0
+    traces = []
     for i, day in enumerate(unique_days):
         day_hour_start += 24 * i
         # print("day_hour_start: ", day_hour_start)
@@ -148,29 +181,25 @@ def draw_bid_curves_for_multiple_days_2d(
                 # y_data.append(max_y)
                 # z_data.append(subset.iloc[-1]["SCH_BID_Y1AXISDATA"])
 
-                fig.add_trace(
+                traces.append(
                     go.Scatter(
                         x=x_data,
                         y=y_data,
-                        mode="lines",
-                        line=dict(color=color),
-                        name=f"Date {day} Hour {hour}",
+                        mode="markers+lines",
+                        line=dict(color=color, width=0.25),
+                        name=f"{hour}:00",
+                        legendgroup=f"{day}",
+                        legendgrouptitle={"text": f"{day}"},
                     )
                 )
 
-    # Update the layout once for the entire figure
-    fig_title = f"bidding curve for resource id = {RESOURCEBID_SEQ} from {START_DAY} to {END_DAY}"
-    if hr_specified is not None:
-        fig_title += f", at hour {hr_specified}"
-    fig.update_layout(
-        title=fig_title,
-        scene=dict(
-            xaxis_title="MW (Megawatts)",
-            yaxis_title="Price ($)",
-        ),
-    )
-
-    fig.show()
+    result_dict = {
+        "traces": traces,
+        "RESOURCEBID_SEQ": RESOURCEBID_SEQ,
+        "START_DAY": START_DAY,
+        "END_DAY": END_DAY,
+    }
+    return result_dict
 
 
 def draw_bid_curves_for_multiple_days(data_multiple_days, hr_specified=None):
@@ -310,9 +339,11 @@ def draw_bid_curves_for_multiple_days(data_multiple_days, hr_specified=None):
                         x=x_data,
                         y=y_data,
                         z=z_data,
-                        mode="lines",
-                        line=dict(color=color),
-                        name=f"Date {day} Hour {hour}",
+                        mode="markers+lines",
+                        line=dict(color=color, width=0.25),
+                        name=f"{hour}:00",
+                        legendgroup=f"{day}",
+                        legendgrouptitle={"text": f"{day}"},
                     )
                 )
 
@@ -326,7 +357,7 @@ def draw_bid_curves_for_multiple_days(data_multiple_days, hr_specified=None):
             # xaxis = dict(nticks=30, range=[0, 10*24*len(unique_days)],),
             # xaxis = dict( nticks=len(unique_days), range=[0, 100*5*len(unique_days)],),
             xaxis_title="Cumulative Hours",
-            yaxis_title="MW (Megawatts)",
+            yaxis_title="Amount (MW)",
             zaxis_title="Price ($)",
             camera=dict(
                 eye=dict(
@@ -335,6 +366,7 @@ def draw_bid_curves_for_multiple_days(data_multiple_days, hr_specified=None):
                 up=dict(x=0, y=0, z=1),  # Sets the upward direction (usually Z-axis)
             ),
         ),
+        hovermode="x unified",
     )
 
     fig.show()

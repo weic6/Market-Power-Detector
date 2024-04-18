@@ -73,6 +73,7 @@ def draw_avg_price_for_multiple_days(data_dir):
             ),
         ),
         legend_title="LMP_TYPE",
+        hovermode="x unified",
     )
 
     fig.show()
