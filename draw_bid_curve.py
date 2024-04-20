@@ -73,7 +73,6 @@ def find_trace_bid_curves_for_multiple_days_2d(
     colors = [
         "blue",
         "green",
-        "red",
         "cyan",
         "magenta",
         "yellow",
@@ -88,6 +87,7 @@ def find_trace_bid_curves_for_multiple_days_2d(
 
     day_hour_start = 0
     traces = []
+    # legend_added = False  # to avoid adding legend multiple times
     for i, day in enumerate(unique_days):
         day_hour_start += 24 * i
         # print("day_hour_start: ", day_hour_start)
@@ -118,8 +118,6 @@ def find_trace_bid_curves_for_multiple_days_2d(
         unique_pairs_list = list(unique_pairs)
         unique_pairs_list.sort(key=lambda x: (x[0], x[1]))
 
-        color = colors[i % len(colors)]
-
         max_y = 180  # to extend the last step
         for time_start, time_end in unique_pairs_list:
             if (
@@ -140,6 +138,10 @@ def find_trace_bid_curves_for_multiple_days_2d(
             ):  # if time is from 23:00 to 0:00, change it to 23:00 to 24:00
                 time_end = 24
             for hour in range(time_start, time_end):
+
+                color = colors[i % len(colors)]
+                opacity = 0.5
+                name = f"{hour}:00"
                 if hr_specified is not None:
                     if hour != hr_specified:
                         continue
@@ -153,7 +155,22 @@ def find_trace_bid_curves_for_multiple_days_2d(
                         #     result = f"Timestamp {time_stamp} not found in the DataFrame index."
                         assert time_stamp in cluster_labels.index
                         label = cluster_labels.loc[time_stamp, "cluster_label"]
-                        color = colors[label % len(colors)]
+
+                        if label == -1:
+                            color = "red"
+                            opacity = 0.5
+                            name = "Not in clusters"
+                            # if not legend_added:
+                            #     name = "Not in clusters"
+                            #     legend_added = (
+                            #         True  # ensure "Not in clusters" added only once
+                            #     )
+                            # else:
+                            #     name = None
+
+                        else:
+                            color = colors[label % len(colors)]
+
                 subset = day_df[day_df["SCH_BID_TIMEINTERVALSTART_HR"] == time_start]
                 x_data = []  # MW
                 y_data = []  # $
@@ -187,7 +204,9 @@ def find_trace_bid_curves_for_multiple_days_2d(
                         y=y_data,
                         mode="markers+lines",
                         line=dict(color=color, width=0.25),
-                        name=f"{hour}:00",
+                        opacity=opacity,
+                        name=name,
+                        # showlegend=name,
                         legendgroup=f"{day}",
                         legendgrouptitle={"text": f"{day}"},
                     )
@@ -199,6 +218,7 @@ def find_trace_bid_curves_for_multiple_days_2d(
         "START_DAY": START_DAY,
         "END_DAY": END_DAY,
     }
+
     return result_dict
 
 

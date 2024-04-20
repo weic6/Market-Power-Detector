@@ -152,7 +152,7 @@ def old_plot_dist_mat(df):
     plt.show()
 
 
-def plot_dist_mat(df):
+def plot_dist_mat(df, width=900, height=900):
     """
     plot the distance matrix of the dataframe
     """
@@ -167,8 +167,8 @@ def plot_dist_mat(df):
         title="Distance Matrix Heatmap",
         xaxis=dict(title="date"),
         yaxis=dict(title="date"),
-        width=900,  # Adjust the size as needed
-        height=900,  # Adjust the size as needed
+        width=width,
+        height=height,
     )
 
     fig = go.Figure(data=[heatmap], layout=layout)

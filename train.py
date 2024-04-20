@@ -4,6 +4,10 @@ from sklearn.cluster import KMeans
 from scipy.spatial import distance_matrix
 import sys
 from utils import printStats, plot_dist_mat, draw_distribution, scale_feat
+import plotly.graph_objects as go
+from sklearn.metrics import pairwise_distances
+import matplotlib.pyplot as plt
+import plotly.express as px
 
 
 def test():
@@ -117,7 +121,7 @@ def extract_feat_from_bid(df_data):
 
 def read_data(file):
     """
-    read data from csv file
+    read data from csv file (and convert the time columns to datetime format)
 
     Parameters:
     - file (str): the path to the csv file
@@ -142,8 +146,6 @@ def find_inter_intra_err_and_best_model(
     - inter_cluster_error (list): Sum of Squared Distances Between Centroids for each cluster number from min_clusters to max_clusters
     - best_model_dict (dict): the best model with kmeans model, n_cluster, and minimal distance between intra and inter cluster.
     """
-    from sklearn.cluster import KMeans
-    from sklearn.metrics import pairwise_distances
     import warnings
     from sklearn.exceptions import ConvergenceWarning
 
@@ -225,8 +227,6 @@ def find_trace_inter_intra_err(
         )
     )
 
-    import plotly.graph_objects as go
-
     traces = []
     # intra-cluster error trace
     traces.append(
@@ -291,8 +291,6 @@ def plot_inter_intra_err(df_train_feat_scaled, min_clusters, max_clusters):
     (Sum of Squared Distances of each sample to their closest cluster centroid) for different number
     of clusters, and annotate the plot with the best model's number of clusters.
     """
-    import plotly.graph_objects as go
-
     traces = find_trace_inter_intra_err(
         df_train_feat_scaled, min_clusters, max_clusters
     )
@@ -310,6 +308,251 @@ def plot_inter_intra_err(df_train_feat_scaled, min_clusters, max_clusters):
     )
 
     fig.show()
+
+
+def plot_3D_3pc_w_labels(df_train_feat_scaled_pca):
+    """
+    plot 3D scatter plot of the first 3 PCA components with cluster labels
+    """
+    if "cluster_label" not in df_train_feat_scaled_pca.columns:
+        print("Please assign cluster labels to the dataframe first.")
+        return
+
+    # PC1, PC2, PC3, cluster_label columns are required
+    if len(df_train_feat_scaled_pca.columns) != 3 + 1:
+        print("This function works only when the number of PCA components is 3.")
+        return
+
+    fig = go.Figure()
+
+    labels = df_train_feat_scaled_pca["cluster_label"].unique()
+    colors = px.colors.qualitative.Plotly
+
+    for i, label in enumerate(labels):
+        # filter row with current label
+        df_label = df_train_feat_scaled_pca[
+            df_train_feat_scaled_pca["cluster_label"] == label
+        ]
+
+        fig.add_trace(
+            go.Scatter3d(
+                x=df_label["PC1"],
+                y=df_label["PC2"],
+                z=df_label["PC3"],
+                mode="markers",
+                marker=dict(size=5, color=colors[i % len(colors)], opacity=0.8),
+                name=f"Cluster {label}",
+            )
+        )
+
+    fig.update_layout(
+        title="3D Scatter Plot of PCA Components",
+        scene=dict(
+            xaxis_title="PC1",
+            yaxis_title="PC2",
+            zaxis_title="PC3",
+            camera=dict(eye=dict(x=2, y=-1.5, z=1)),
+        ),
+        legend_title_text="Cluster Labels",
+        margin=dict(l=0, r=0, b=0, t=30),
+    )
+
+    fig.show()
+
+
+def plot_3D_3pc(df_train_feat_scaled_pca):
+    """
+    plot 3D scatter plot of the first 3 PCA components
+    """
+
+    if len(df_train_feat_scaled_pca.columns) != 3:
+        print("This function works only when the number of PCA components is 3.")
+        return
+
+    fig = go.Figure(
+        data=[
+            go.Scatter3d(
+                x=df_train_feat_scaled_pca["PC1"],
+                y=df_train_feat_scaled_pca["PC2"],
+                z=df_train_feat_scaled_pca["PC3"],
+                mode="markers",
+                marker=dict(size=5, opacity=0.8),
+            )
+        ]
+    )
+
+    fig.update_layout(
+        title="3D Scatter Plot of PCA Components",
+        scene=dict(xaxis_title="PC1", yaxis_title="PC2", zaxis_title="PC3"),
+        margin=dict(l=0, r=0, b=0, t=30),
+    )
+
+    fig.show()
+
+
+def select_number_of_pca_components(explained_var_ratio, goal_var=0.95):
+    """
+    select the number of PCA components based on desired explained variance threshold
+    """
+    total_variance = 0.0
+    for i, explained_variance in enumerate(explained_var_ratio):
+        total_variance += explained_variance
+        if total_variance >= goal_var:
+            return i + 1  # return the count of components used
+    return len(explained_var_ratio)  # when the loop finishes without reaching the goal
+
+
+def plot_explain_variance(pca):
+
+    explained_variance = pca.explained_variance_ratio_
+    plt.figure(figsize=(10, 5))
+    plt.bar(
+        range(1, len(explained_variance) + 1),
+        explained_variance,
+        alpha=0.5,
+        align="center",
+        label="Individual explained variance",
+    )
+    plt.step(
+        range(1, len(explained_variance) + 1),
+        np.cumsum(explained_variance),
+        where="mid",
+        label="Cumulative explained variance",
+    )
+    plt.ylabel("Explained variance ratio")
+    plt.xlabel("Principal components")
+    plt.legend(loc="best")
+    plt.tight_layout()
+    plt.show()
+
+
+def convert_numpy_pca_to_df(np_train_feat_scaled_pca, df_train_feat_scaled):
+    """
+    convert the numpy PCA result into a dataframe
+
+    Parameters:
+    np_train_feat_scaled_pca (numpy array): the PCA result
+    df_train_feat_scaled (dataframe): the scaled feature dataframe
+
+    Returns:
+    df_train_feat_scaled_pca (dataframe): the PCA components
+    """
+
+    df_train_feat_scaled_pca = pd.DataFrame(
+        data=np_train_feat_scaled_pca,
+        index=df_train_feat_scaled.index,  # use the original index
+        columns=[f"PC{i+1}" for i in range(np_train_feat_scaled_pca.shape[1])],
+    )
+    return df_train_feat_scaled_pca
+
+
+def extract_pca_components(df_train_feat_scaled, goal_var=0.95, isPrint=False):
+    """
+    extract PCA components from the scaled feature dataframe
+
+    Parameters:
+    df_train_feat_scaled (dataframe): the scaled feature dataframe
+    goal_var (float): the desired explained variance ratio
+    isPrint (boolean): whether to print the PCA result
+
+    Returns:
+    df_train_feat_scaled_pca (dataframe): the PCA components
+    pca.components_ (array): the PCA components
+    explained_variance (array): the explained variance ratio
+    """
+    from sklearn.decomposition import PCA
+
+    # apply PCA and retain all components
+    pca_all = PCA()
+    pca_all = PCA()
+    pca_all.fit(df_train_feat_scaled)
+    explained_variance_all = pca_all.explained_variance_ratio_
+    n_components = select_number_of_pca_components(explained_variance_all, goal_var)
+
+    # reapply PCA with the chosen number of components
+    pca = PCA(n_components=n_components)
+    np_train_feat_scaled_pca = pca.fit_transform(df_train_feat_scaled)
+    explained_variance = pca.explained_variance_ratio_
+
+    # convert the PCA result into a dataframe
+    df_train_feat_scaled_pca = convert_numpy_pca_to_df(
+        np_train_feat_scaled_pca, df_train_feat_scaled
+    )
+
+    # print the PCA result
+    if isPrint == True:
+        print(
+            f"Number of components to keep for {100*goal_var}% explained variance: {n_components}"
+        )
+        print("Original shape: ", df_train_feat_scaled.shape)
+        print("Transformed shape: ", np_train_feat_scaled_pca.shape)
+        print("PCA components: \n", pca.components_)
+        print("PCA explained variance: \n", explained_variance)
+        print(
+            "Cumulative explained variance by component: \n",
+            explained_variance.cumsum(),
+        )
+
+    return df_train_feat_scaled_pca, pca.components_, explained_variance, pca
+
+
+def find_cluster_threshold(
+    model_kmeans_train, df_train_feat_scaled_pca, n_cluster, percentile=95
+):
+    """
+    find the percentile th distance to the centroid for each cluster.
+
+    Parameters:
+    model_kmeans_train: the trained kmeans model
+    df_train_feat_scaled_pca: the PCA components of the scaled train feature dataframe
+    n_cluster (int): the number of clusters for the trained kmeans model
+    percentile (int): the percentile threshold
+
+    Returns:
+    cluster_thresholds (dict): the percentile threshold for each cluster
+    """
+
+    clusters = model_kmeans_train.labels_
+    centroids = model_kmeans_train.cluster_centers_
+    distances = pairwise_distances(
+        df_train_feat_scaled_pca, centroids, metric="euclidean"
+    )
+    distance_to_centroid = np.min(distances, axis=1)
+    percentile_thresholds = []
+    for i in range(n_cluster):
+        cluster_distances = distance_to_centroid[clusters == i]
+        percentile_distance = np.percentile(cluster_distances, percentile)
+        percentile_thresholds.append(percentile_distance)
+
+    cluster_thresholds = {
+        i: threshold for i, threshold in enumerate(percentile_thresholds)
+    }
+
+    return cluster_thresholds
+
+
+def predict_valid_label(
+    model_kmeans_train, df_valid_feat_scaled_pca, cluster_thresholds
+):
+    centroids = model_kmeans_train.cluster_centers_
+    valid_distances = pairwise_distances(
+        df_valid_feat_scaled_pca, centroids, metric="euclidean"
+    )
+    valid_min_distances = np.min(valid_distances, axis=1)
+    valid_min_indices = np.argmin(valid_distances, axis=1)
+    # compare each validation point's distance to its nearest centroid's threshold
+    valid_labels = []
+    for dist, idx in zip(valid_min_distances, valid_min_indices):
+        if dist <= cluster_thresholds[idx]:
+            valid_labels.append(idx)
+        else:
+            valid_labels.append(-1)  # -1 denoting 'not belonging to any cluster'
+
+    # print("df_valid_feat_scaled_pca.shape: ", df_valid_feat_scaled_pca.shape)
+    # print(f"=====\nvalid_distances:\n shape={valid_distances.shape}\n{valid_distances}")
+    # print(f"=====\nvalid_min_distances:\n shape={valid_min_distances.shape}\n{valid_min_distances}")
+    # print(f"=====\valid_min_indices:\n shape={valid_min_indices.shape}\n{valid_min_indices}")
+    return valid_labels
 
 
 # def main():
