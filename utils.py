@@ -9,6 +9,7 @@ import numpy as np
 from sklearn.metrics import pairwise_distances
 import seaborn as sns
 import plotly.graph_objs as go
+from plotly.subplots import make_subplots
 
 
 def unzip_files(input_dir, output_dir):
@@ -160,13 +161,40 @@ def plot_dist_mat(df, width=900, height=900):
     # Calculate the pairwise distance matrix
     dist_mat = pairwise_distances(df, metric="euclidean")
 
+    dates = pd.to_datetime(df.index.date)
+    formatted_dates = dates.strftime("%Y-%m")
+    unique_month_years = formatted_dates.unique()
+    tickvals = [
+        formatted_dates.tolist().index(month_year) for month_year in unique_month_years
+    ]
+    ticktext = unique_month_years.tolist()
+
     dates = df.index.date
     heatmap = go.Heatmap(z=dist_mat, x=dates, y=dates, colorscale="Viridis")
 
+    # layout = go.Layout(
+    #     title="Distance Matrix Heatmap",
+    #     xaxis=dict(title="date", tickangle=90),
+    #     yaxis=dict(title="date"),
+    #     width=width,
+    #     height=height,
+    # )
+
     layout = go.Layout(
         title="Distance Matrix Heatmap",
-        xaxis=dict(title="date"),
-        yaxis=dict(title="date"),
+        xaxis=dict(
+            title="date",
+            tickangle=270,
+            tickvals=tickvals,
+            ticktext=ticktext,
+            type="category",  # Specify axis type as 'category' to avoid automatic ticks
+        ),
+        yaxis=dict(
+            title="date",
+            tickvals=tickvals,
+            ticktext=ticktext,
+            type="category",  # Specify axis type as 'category' to avoid automatic ticks
+        ),
         width=width,
         height=height,
     )
@@ -175,39 +203,72 @@ def plot_dist_mat(df, width=900, height=900):
     fig.show()
 
 
-def draw_distribution(feature):
+def draw_distribution(df):
     """
-    draw the distribution of the feature
+    draw the distribution of each feature in the DataFrame using Plotly,
+    where each dot represents the frequency of a unique value.
     """
+    from plotly.subplots import make_subplots
 
-    # Assuming df_train_feat is your DataFrame with the data you are plotting
-    max_value = (
-        feature.max().max()
-    )  # This will get the maximum value across all columns
-    bins = np.arange(
-        -1.5, max_value + 1.5
-    )  # +1.5 to include the rightmost edge of the last integer
+    num_features = len(df.columns)
+    cols = 2
+    rows = (num_features + 1) // cols
 
-    # hist is a 2D numpy array of Axes objects
-    hist = feature.hist(bins=bins, figsize=(10, 8), linewidth=2, color="red")
+    fig = make_subplots(
+        rows=rows,
+        cols=cols,
+        subplot_titles=df.columns,
+        horizontal_spacing=0.08,
+        vertical_spacing=0.08,
+    )
 
-    for axis_array in hist:
-        for axis in axis_array:
-            axis.set_xlabel("Quantity")
-            axis.set_ylabel("Frequency")
-            axis.grid(False)
+    subplot_index = 0
 
-    plt.tight_layout()
-    plt.show()
+    for column in df.columns:
+        row_idx = (subplot_index) // cols + 1
+        col_idx = (subplot_index) % cols + 1
+
+        value_counts = df[column].value_counts().sort_index()
+
+        fig.add_trace(
+            go.Scatter(
+                x=value_counts.index,
+                y=value_counts.values,
+                mode="markers",
+                marker=dict(
+                    # color=np.random.choice(['red', 'blue', 'green', 'purple', 'orange', 'cyan']),
+                    size=10,
+                    line=dict(width=2, color="DarkSlateGrey"),
+                ),
+                name=column,  # legend name
+            ),
+            row=row_idx,
+            col=col_idx,
+        )
+
+        subplot_index += 1
+
+    fig.update_layout(
+        height=300 * rows,
+        width=800,
+        title_text="Frequency Distribution of Features",
+        showlegend=False,
+        # template='plotly_white'
+    )
+
+    fig.show()
 
 
-def scale_feat(df):
+def scale_feat(df, scaler=None):
     """
     scale the features such that they have mean 0 and variance 1
     """
-    from sklearn.preprocessing import StandardScaler
 
-    scaler = StandardScaler()
+    if scaler is None:
+        from sklearn.preprocessing import StandardScaler
+
+        scaler = StandardScaler()
+
     features_scaled = scaler.fit_transform(df)
     df_scaled = pd.DataFrame(features_scaled, index=df.index, columns=df.columns)
-    return df_scaled
+    return df_scaled, scaler

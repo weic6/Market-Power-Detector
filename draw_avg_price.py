@@ -33,7 +33,7 @@ def draw_avg_price_for_multiple_days(data_dir):
     # Plotting
     fig = go.Figure()
     marker_types = {"MCE": "circle", "MCL": "circle", "MCC": "circle", "LMP": "x"}
-    colors = {"MCE": "blue", "MCL": "green", "MCC": "red", "LMP": "brown"}
+    colors = {"MCE": "blue", "MCL": "green", "MCC": "red", "LMP": "orange"}
 
     # Loop through each LMP_TYPE and add a scatter plot for each
     for lmp_type in df_combined["LMP_TYPE"].unique():
@@ -75,6 +75,8 @@ def draw_avg_price_for_multiple_days(data_dir):
         legend_title="LMP_TYPE",
         hovermode="x unified",
     )
+
+    fig.write_html(f"average_price.html")
 
     fig.show()
 
@@ -218,7 +220,9 @@ def main():
     print([os.path.basename(file) for file in MCL_csv_files[:5]], "\n")
 
     # Calculate hourly average price for LMP, MCC, MCE, MCL and save the results into separate csv files
-    avg_price_folder = os.path.join(data_folder, "avg_hourly_price")
+    avg_price_folder = os.path.join(
+        data_folder, "avg_hourly_price_avg_hourly_price_0723_0823"
+    )
     # find_hourly_avg_price(
     #     LMP_csv_files=LMP_csv_files,
     #     MCC_csv_files=MCC_csv_files,

@@ -10,24 +10,39 @@ import numpy as np
 import json
 import pandas as pd
 import plotly.express as px
+import datetime
 
 
 def draw_bid_curves_for_multiple_days_2d(
-    data_multiple_days, hr_specified=None, cluster_labels=None
+    fig,
+    df_data,
+    opacity=1.0,
+    hr_specified=None,
+    cluster_labels=None,
+    save_fig=False,
+    fig_name=None,
+    marker_symbol="circle",
+    marker_size=10,
+    linewidth=0.25,
 ):
     """
     Draw 2D bidding curves for multiple days.
     If hr_specified is not None, then draw the curve for the specified hour only.
     """
     result_dict = find_trace_bid_curves_for_multiple_days_2d(
-        data_multiple_days, hr_specified, cluster_labels
+        df_data=df_data,
+        hr_specified=hr_specified,
+        cluster_labels=cluster_labels,
+        opacity=opacity,
+        marker_symbol=marker_symbol,
+        marker_size=marker_size,
+        linewidth=linewidth,
     )
     RESOURCEBID_SEQ = result_dict["RESOURCEBID_SEQ"]
     START_DAY = result_dict["START_DAY"]
     END_DAY = result_dict["END_DAY"]
     traces = result_dict["traces"]
 
-    fig = go.Figure()
     for trace in traces:
         fig.add_trace(trace)
 
@@ -39,20 +54,35 @@ def draw_bid_curves_for_multiple_days_2d(
         title=fig_title,
         xaxis_title="Amount (MW)",
         yaxis_title="Price ($)",
-        hovermode="x unified",
+        # hovermode="x unified",
     )
+    if save_fig:
+        if fig_name is None:
+            now = datetime.datetime.now()
+            fig_name = f"{now.strftime('%Y%m%d_%H%M%S')}"
+        fig.write_html(f"bidding_curve_{fig_name}.html")
 
     fig.show()
+    return fig
 
 
 def find_trace_bid_curves_for_multiple_days_2d(
-    data_multiple_days, hr_specified=None, cluster_labels=None
+    df_data,
+    hr_specified=None,
+    cluster_labels=None,
+    opacity=1.0,
+    marker_symbol="circle",
+    marker_size=10,
+    linewidth=0.25,
 ):
     """
     Return traces of 2D bidding curves for multiple days.
     If hr_specified is not None, then return traces of 2D bidding curves for the specified hour only.
     """
-    df = pd.DataFrame(data_multiple_days)
+    if hr_specified is None:
+        print("HOUR is not specified, make sure if this is intended!!!")
+
+    df = pd.DataFrame(df_data)
     RESOURCEBID_SEQ = df["RESOURCEBID_SEQ"].iloc[0]
 
     df["SCH_BID_TIMEINTERVALSTART"] = pd.to_datetime(df["SCH_BID_TIMEINTERVALSTART"])
@@ -73,13 +103,13 @@ def find_trace_bid_curves_for_multiple_days_2d(
     colors = [
         "blue",
         "green",
-        "cyan",
+        "orange",
+        "brown",
         "magenta",
+        "purple",
+        "cyan",
         "yellow",
         "black",
-        "orange",
-        "purple",
-        "brown",
     ]
 
     START_DAY = unique_days[0]
@@ -139,8 +169,9 @@ def find_trace_bid_curves_for_multiple_days_2d(
                 time_end = 24
             for hour in range(time_start, time_end):
 
-                color = colors[i % len(colors)]
-                opacity = 0.5
+                # color = colors[i % len(colors)]
+                color = "black"  # default color
+                # opacity = 1
                 name = f"{hour}:00"
                 if hr_specified is not None:
                     if hour != hr_specified:
@@ -158,8 +189,10 @@ def find_trace_bid_curves_for_multiple_days_2d(
 
                         if label == -1:
                             color = "red"
-                            opacity = 0.5
+                            # opacity = 1
                             name = "Not in clusters"
+                            # linewidth += 3
+
                             # if not legend_added:
                             #     name = "Not in clusters"
                             #     legend_added = (
@@ -203,14 +236,17 @@ def find_trace_bid_curves_for_multiple_days_2d(
                         x=x_data,
                         y=y_data,
                         mode="markers+lines",
-                        line=dict(color=color, width=0.25),
+                        line=dict(color=color, width=linewidth),
                         opacity=opacity,
                         name=name,
+                        marker=dict(size=marker_size, symbol=marker_symbol),
                         # showlegend=name,
                         legendgroup=f"{day}",
                         legendgrouptitle={"text": f"{day}"},
                     )
                 )
+
+                # linewidth = 0.25  # reset linewidth
 
     result_dict = {
         "traces": traces,
@@ -222,12 +258,12 @@ def find_trace_bid_curves_for_multiple_days_2d(
     return result_dict
 
 
-def draw_bid_curves_for_multiple_days(data_multiple_days, hr_specified=None):
+def draw_bid_curves_for_multiple_days(df_data, hr_specified=None):
     """
     Draw 3D bidding curves for multiple days.
     if hr_specified is not None, then draw the curve for the specified hour only
     """
-    df = pd.DataFrame(data_multiple_days)
+    df = pd.DataFrame(df_data)
     RESOURCEBID_SEQ = df["RESOURCEBID_SEQ"].iloc[0]
 
     df["SCH_BID_TIMEINTERVALSTART"] = pd.to_datetime(df["SCH_BID_TIMEINTERVALSTART"])

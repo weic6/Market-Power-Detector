@@ -50,20 +50,23 @@ def filter_rows(df, HOUR=None, RESOURCEBID_SEQ=None):
     """
     filter data to specific hour and and specific resourcebid_seq
     """
-    df["hr_start"] = df["SCH_BID_TIMEINTERVALSTART"].dt.hour
-    df["hr_stop"] = df["SCH_BID_TIMEINTERVALSTOP"].dt.hour
-    df.loc[
-        df["hr_stop"] == 0,
+    df_new = df.copy()
+    df_new["hr_start"] = df_new["SCH_BID_TIMEINTERVALSTART"].dt.hour
+    df_new["hr_stop"] = df_new["SCH_BID_TIMEINTERVALSTOP"].dt.hour
+    df_new.loc[
+        df_new["hr_stop"] == 0,
         "hr_stop",
     ] = 24
 
     if RESOURCEBID_SEQ is not None:
-        df = df[df["RESOURCEBID_SEQ"] == RESOURCEBID_SEQ].copy()
+        df_new = df_new[df_new["RESOURCEBID_SEQ"] == RESOURCEBID_SEQ].copy()
 
     if HOUR is not None:
-        df = df[(df["hr_start"] <= HOUR) & (df["hr_stop"] > HOUR)].copy()
+        df_new = df_new[
+            (df_new["hr_start"] <= HOUR) & (df_new["hr_stop"] > HOUR)
+        ].copy()
 
-    df.sort_values(
+    df_new.sort_values(
         by=[
             "SCH_BID_TIMEINTERVALSTART",
             "SCH_BID_TIMEINTERVALSTOP",
@@ -72,7 +75,7 @@ def filter_rows(df, HOUR=None, RESOURCEBID_SEQ=None):
         inplace=True,
     )
 
-    return df
+    return df_new
 
 
 def extract_feat_from_bid(df_data):
@@ -94,20 +97,23 @@ def extract_feat_from_bid(df_data):
 
     features = {}
     for start_time, matrix in matrices.items():
-        # Extract all bidding prices for the current date
+        # extract all MW and bidding prices for the current date
+        megawatt = [row[0] for row in matrix]
         prices = [row[1] for row in matrix]
         # print(prices)
         # Calculate max, min, and range of prices
+        max_MW = max(megawatt)
         max_price = max(prices)
         min_price = min(prices)
         avg_price = np.mean(prices)
         price_range = max_price - min_price
         # Save the features for the current date
         features[start_time] = {
+            "max_MW": max_MW,
             "max_price": max_price,
             "min_price": min_price,
-            "avg_price": avg_price,
-            "price_range": price_range,
+            # "avg_price": avg_price,
+            # "price_range": price_range,
             "num_steps": len(prices),
         }
 
@@ -285,7 +291,9 @@ def find_trace_inter_intra_err(
     return traces
 
 
-def plot_inter_intra_err(df_train_feat_scaled, min_clusters, max_clusters):
+def plot_inter_intra_err(
+    df_train_feat_scaled, min_clusters, max_clusters, width=600, height=400
+):
     """
     Plot the inter-cluster (Sum of Squared Distances Between Centroids) and intra-cluster errors
     (Sum of Squared Distances of each sample to their closest cluster centroid) for different number
@@ -302,9 +310,11 @@ def plot_inter_intra_err(df_train_feat_scaled, min_clusters, max_clusters):
     fig.update_layout(
         title="Error vs Number of Clusters",
         xaxis_title="Number of Clusters",
-        yaxis_title="Error",
+        yaxis_title="Distance",
         hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        width=width,
+        height=height,
     )
 
     fig.show()
@@ -463,7 +473,6 @@ def extract_pca_components(df_train_feat_scaled, goal_var=0.95, isPrint=False):
     from sklearn.decomposition import PCA
 
     # apply PCA and retain all components
-    pca_all = PCA()
     pca_all = PCA()
     pca_all.fit(df_train_feat_scaled)
     explained_variance_all = pca_all.explained_variance_ratio_
