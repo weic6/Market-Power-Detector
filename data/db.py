@@ -136,16 +136,20 @@ def populate_table(table_name, csv_files, engine):
     print(f"Successfully import all csv files into database")
 
 
-def main():
+def create_db_engine(db_name="siemens_proj"):
     # load variables
     load_dotenv(dotenv_path="../.env")
     username = os.getenv("DB_USERNAME")
     password = os.getenv("DB_PASSWORD")
     db_url = os.getenv("DB_URL")
-    db_name = "siemens_proj"
     engine = create_engine(
         f"mysql+mysqlconnector://{username}:{password}@{db_url}/{db_name}"
     )
+    return engine
+
+
+def main():
+    engine = create_db_engine()
 
     # create table
     table_name = "bid"
