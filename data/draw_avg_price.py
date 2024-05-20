@@ -10,7 +10,6 @@ import plotly.graph_objects as go
 
 # sys.path.append(os.path.dirname(__file__))
 
-
 def draw_avg_price_for_multiple_days(data_dir):
     lmp = glob(os.path.join(data_dir, "*LMP*.csv"))[0]
     mce = glob(os.path.join(data_dir, "*MCE*.csv"))[0]
