@@ -1,6 +1,7 @@
 *.csv
 *.xlsx
-data
+data/LMP*
+data/PUB_BID*
 .DS_Store
 .ipynb_checkpoints
 __pycache__
@@ -9,3 +10,8 @@ test*
 crawler_practice.py
 dtype_info*
 ~$wei_train_rid100651.tmp
+
+todo
+misc
+
+.env
